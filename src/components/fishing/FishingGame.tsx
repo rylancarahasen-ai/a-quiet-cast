@@ -8,7 +8,7 @@ import GameUI from './GameUI';
 import WeatherSystem from './WeatherSystem';
 
 const WEATHER_CYCLE = ['sunset', 'mountain', 'snow', 'rain', 'starry'];
-const WEATHER_DURATION = 10 * 60 * 1000; // 10 minutes in milliseconds
+const WEATHER_DURATION = 2.5 * 60 * 1000; // 2.5 minutes in milliseconds
 
 export default function FishingGame() {
   const [gameState, setGameState] = useState({
@@ -106,23 +106,24 @@ export default function FishingGame() {
   // Handle movement and actions
   useEffect(() => {
     const moveSpeed = 1;
+    const minPos = 43; // Corresponds to the left edge of the dock
+    const maxPos = 57; // Corresponds to the right edge of the dock
     
-    if (keys.ArrowLeft && gameState.fishermanPosition > 5) {
+    if (keys.ArrowLeft && gameState.fishermanPosition > minPos) {
       setGameState(prev => ({
         ...prev,
-        fishermanPosition: Math.max(5, prev.fishermanPosition - moveSpeed)
+        fishermanPosition: Math.max(minPos, prev.fishermanPosition - moveSpeed)
       }));
     }
     
-    if (keys.ArrowRight && gameState.fishermanPosition < 95) {
+    if (keys.ArrowRight && gameState.fishermanPosition < maxPos) {
       setGameState(prev => ({
         ...prev,
-        fishermanPosition: Math.min(95, prev.fishermanPosition + moveSpeed)
+        fishermanPosition: Math.min(maxPos, prev.fishermanPosition + moveSpeed)
       }));
     }
 
     if (keys.ArrowDown) {
-      // Toggle sitting state
       setTimeout(() => {
         setGameState(prev => ({ ...prev, isSitting: !prev.isSitting }));
       }, 100);
@@ -136,25 +137,28 @@ export default function FishingGame() {
       const fishSize = Math.random() * 100 + 10; // 10-110cm
       const fishType = ['Bass', 'Trout', 'Salmon', 'Pike', 'Catfish'][Math.floor(Math.random() * 5)];
       
-      const newCatch = {
-        type: fishType,
-        size: Math.round(fishSize),
-        weather: gameState.currentWeather,
-        timestamp: Date.now()
-      };
+      setGameState(prev => {
+        const newCatch = {
+          type: fishType,
+          size: Math.round(fishSize),
+          weather: prev.currentWeather,
+          timestamp: Date.now()
+        };
+        const newFishCaughtCount = prev.fishCaught + 1;
 
-      setGameState(prev => ({
-        ...prev,
-        isFishing: false,
-        currentCatch: newCatch,
-        fishCaught: prev.fishCaught + 1
-      }));
+        // Update stats
+        updateGameStats({
+          fishCaught: newFishCaughtCount,
+          biggestFish: Math.max(prev.gameStats?.biggestFish || 0, fishSize),
+          favoriteWeather: prev.currentWeather
+        });
 
-      // Update stats
-      updateGameStats({
-        fishCaught: (gameState.gameStats?.fishCaught || 0) + 1,
-        biggestFish: Math.max(gameState.gameStats?.biggestFish || 0, fishSize),
-        favoriteWeather: gameState.currentWeather
+        return {
+          ...prev,
+          isFishing: false,
+          currentCatch: newCatch,
+          fishCaught: newFishCaughtCount
+        };
       });
 
     } else {
@@ -165,14 +169,14 @@ export default function FishingGame() {
         currentCatch: null
       }));
     }
-  }, [gameState.isFishing, gameState.fishCaught, gameState.currentWeather, gameState.gameStats, updateGameStats]);
+  }, [gameState.isFishing, updateGameStats]);
 
   const dismissCatch = () => {
     setGameState(prev => ({ ...prev, currentCatch: null }));
   };
 
   return (
-    <div className="w-full h-screen overflow-hidden bg-gradient-to-b from-background via-muted to-background relative">
+    <div className="w-full h-screen overflow-hidden bg-gradient-to-b from-slate-900 to-slate-800 relative">
       {/* Game Canvas */}
       <svg
         viewBox="0 0 1200 800"
