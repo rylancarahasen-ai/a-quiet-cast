@@ -6,9 +6,11 @@ import Fisherman from './Fisherman';
 import FishingMechanics from './FishingMechanics';
 import GameUI from './GameUI';
 import WeatherSystem from './WeatherSystem';
+import { FishCatch } from '@/entities/FishCatch';
+import FishCollection from './FishCollection';
 
 const WEATHER_CYCLE = ['sunset', 'mountain', 'snow', 'rain', 'starry'];
-const WEATHER_DURATION = 10 * 60 * 1000; // 10 minutes in milliseconds
+const WEATHER_DURATION = 2.5 * 60 * 1000; // 2.5 minutes in milliseconds
 
 export default function FishingGame() {
   const [gameState, setGameState] = useState({
@@ -24,14 +26,17 @@ export default function FishingGame() {
       weather: string;
       timestamp: number;
     } | null,
-    gameStats: null as any
+    gameStats: null as any,
+    showFishCollection: false
   });
 
   const [keys, setKeys] = useState<Record<string, boolean>>({});
+  const [fishCollection, setFishCollection] = useState<any[]>([]);
 
-  // Load game stats on mount
+  // Load game stats and fish collection on mount
   useEffect(() => {
     loadGameStats();
+    loadFishCollection();
   }, []);
 
   const loadGameStats = async () => {
@@ -45,7 +50,18 @@ export default function FishingGame() {
       }
     } catch (error) {
       // User not logged in or no stats yet
-      console.log('No existing stats found');
+      console.log('Could not load game stats:', error);
+    }
+  };
+
+  const loadFishCollection = async () => {
+    try {
+      const user = await User.me();
+      const catches = await FishCatch.filter({ created_by: user.email }, '-timestamp');
+      setFishCollection(catches);
+    } catch (error) {
+      // User not logged in or no catches yet
+      console.log('Could not load fish collection:', error);
     }
   };
 
@@ -56,15 +72,13 @@ export default function FishingGame() {
       if (gameState.gameStats) {
         await GameStats.update(gameState.gameStats.id, updates);
       } else {
-        // Ensure a new gameStats object is created with all necessary fields
-        await GameStats.create({
-          ...updates,
-        });
+        // The GameStats.create method should handle adding the created_by field
+        await GameStats.create(updates);
       }
       
-      loadGameStats(); // Reload to get the latest stats
+      loadGameStats(); // Reload to get the latest stats, including the new one if created
     } catch (error) {
-      console.error('Error updating game stats:', error);
+      console.log('Could not update game stats:', error);
     }
   }, [gameState.gameStats]);
 
@@ -106,23 +120,24 @@ export default function FishingGame() {
   // Handle movement and actions
   useEffect(() => {
     const moveSpeed = 1;
+    const minPos = 43; // Corresponds to the left edge of the dock
+    const maxPos = 57; // Corresponds to the right edge of the dock
     
-    if (keys.ArrowLeft && gameState.fishermanPosition > 5) {
+    if (keys.ArrowLeft && gameState.fishermanPosition > minPos) {
       setGameState(prev => ({
         ...prev,
-        fishermanPosition: Math.max(5, prev.fishermanPosition - moveSpeed)
+        fishermanPosition: Math.max(minPos, prev.fishermanPosition - moveSpeed)
       }));
     }
     
-    if (keys.ArrowRight && gameState.fishermanPosition < 95) {
+    if (keys.ArrowRight && gameState.fishermanPosition < maxPos) {
       setGameState(prev => ({
         ...prev,
-        fishermanPosition: Math.min(95, prev.fishermanPosition + moveSpeed)
+        fishermanPosition: Math.min(maxPos, prev.fishermanPosition + moveSpeed)
       }));
     }
 
     if (keys.ArrowDown) {
-      // Toggle sitting state
       setTimeout(() => {
         setGameState(prev => ({ ...prev, isSitting: !prev.isSitting }));
       }, 100);
@@ -130,32 +145,53 @@ export default function FishingGame() {
     }
   }, [keys, gameState.fishermanPosition]);
 
-  const handleFish = useCallback(() => {
+  const handleFish = useCallback(async () => {
     if (gameState.isFishing) {
       // Reel in
       const fishSize = Math.random() * 100 + 10; // 10-110cm
       const fishType = ['Bass', 'Trout', 'Salmon', 'Pike', 'Catfish'][Math.floor(Math.random() * 5)];
       
-      const newCatch = {
-        type: fishType,
+      const catchData = {
+        fishType,
         size: Math.round(fishSize),
         weather: gameState.currentWeather,
         timestamp: Date.now()
       };
 
-      setGameState(prev => ({
-        ...prev,
-        isFishing: false,
-        currentCatch: newCatch,
-        fishCaught: prev.fishCaught + 1
-      }));
+      // Update local game state immediately for responsiveness
+      setGameState(prev => {
+        const newCatch = {
+          type: fishType,
+          size: Math.round(fishSize),
+          weather: prev.currentWeather,
+          timestamp: Date.now()
+        };
+        const newFishCaughtCount = prev.fishCaught + 1;
 
-      // Update stats
-      updateGameStats({
-        fishCaught: (gameState.gameStats?.fishCaught || 0) + 1,
-        biggestFish: Math.max(gameState.gameStats?.biggestFish || 0, fishSize),
-        favoriteWeather: gameState.currentWeather
+        return {
+          ...prev,
+          isFishing: false,
+          currentCatch: newCatch,
+          fishCaught: newFishCaughtCount
+        };
       });
+
+      // Try to save catch to database (but don't block the game if it fails)
+      try {
+        await FishCatch.create(catchData);
+        await loadFishCollection(); // Refresh collection after successful save
+        
+        // Update stats after successful save
+        // Use the latest state values for fishCaught and gameStats
+        updateGameStats({
+          fishCaught: gameState.fishCaught + 1, // gameState.fishCaught would have been updated by the setGameState above
+          biggestFish: Math.max(gameState.gameStats?.biggestFish || 0, fishSize),
+          favoriteWeather: gameState.currentWeather
+        });
+      } catch (error) {
+        console.log('Could not save catch to database, but game continues:', error);
+        // Game continues even if database save fails
+      }
 
     } else {
       // Cast line
@@ -165,14 +201,22 @@ export default function FishingGame() {
         currentCatch: null
       }));
     }
-  }, [gameState.isFishing, gameState.fishCaught, gameState.currentWeather, gameState.gameStats, updateGameStats]);
+  }, [gameState.isFishing, gameState.currentWeather, gameState.fishCaught, gameState.gameStats, updateGameStats]);
 
   const dismissCatch = () => {
     setGameState(prev => ({ ...prev, currentCatch: null }));
   };
 
+  const handleCabinDoorClick = () => {
+    setGameState(prev => ({ ...prev, showFishCollection: true }));
+  };
+
+  const closeFishCollection = () => {
+    setGameState(prev => ({ ...prev, showFishCollection: false }));
+  };
+
   return (
-    <div className="w-full h-screen overflow-hidden bg-gradient-to-b from-background via-muted to-background relative">
+    <div className="w-full h-screen overflow-hidden bg-gradient-to-b from-slate-900 to-slate-800 relative">
       {/* Game Canvas */}
       <svg
         viewBox="0 0 1200 800"
@@ -215,8 +259,25 @@ export default function FishingGame() {
           <rect x="0" y="40" width="180" height="120" fill="#6b4423" />
           {/* Roof */}
           <polygon points="0,40 90,0 180,40" fill="#4a2c17" />
-          {/* Door */}
-          <rect x="70" y="90" width="40" height="70" fill="#3c1810" />
+          {/* Door - Now clickable */}
+          <rect 
+            x="70" 
+            y="90" 
+            width="40" 
+            height="70" 
+            fill="#3c1810"
+            style={{ cursor: 'pointer' }}
+            onClick={handleCabinDoorClick}
+          />
+          {/* Door handle */}
+          <circle 
+            cx="100" 
+            cy="125" 
+            r="2" 
+            fill="#d4af37"
+            style={{ cursor: 'pointer' }}
+            onClick={handleCabinDoorClick}
+          />
           {/* Windows */}
           <rect x="20" y="70" width="30" height="25" fill="#ffd700" opacity="0.7" />
           <rect x="130" y="70" width="30" height="25" fill="#ffd700" opacity="0.7" />
@@ -240,12 +301,20 @@ export default function FishingGame() {
       </svg>
 
       {/* Game UI Overlay */}
-      <GameUI
+      <GameUI 
         gameState={gameState}
         onFish={handleFish}
         onDismissCatch={dismissCatch}
         weather={gameState.currentWeather}
       />
+
+      {/* Fish Collection Modal */}
+      {gameState.showFishCollection && (
+        <FishCollection 
+          fishCollection={fishCollection}
+          onClose={closeFishCollection}
+        />
+      )}
     </div>
   );
 }
