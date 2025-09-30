@@ -50,7 +50,7 @@ export default function Fisherman({ position, isSitting, isFishing }: FishermanP
 
       {/* Gray Beard */}
       <ellipse cx="0" cy="18" rx="8" ry="6" fill="#6b7280" />
-      <rect x="-4" y="16.5" width="8" height="3" fill="#000000" />
+      <rect x="-4" y="16.5" width="8" height="2" fill="#000000" />
 
       {/* Eyes */}
       <circle cx="-4" cy="8" r="1.5" fill="#000" />

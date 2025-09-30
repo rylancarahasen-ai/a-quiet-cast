@@ -284,6 +284,66 @@ export default function FishingGame() {
           {/* Chimney */}
           <rect x="140" y="10" width="20" height="40" fill="#8b4513" />
         </g>
+
+        {/* Grave of Luna Wildrose */}
+            <g transform="translate(1100, 400)">
+                
+                {/* Grave Stone */}
+                <rect x="-45" y="55" width="90" height="30" rx="5" ry="5" fill="#a0a0a0" stroke="#757575" stroke-width="1" />
+                
+                {/* Wooden Cross */}
+                <g transform="translate(0, 5)">
+                    <rect x="-10" y="-15" width="20" height="85" fill="#795548" rx="2" ry="2" />
+                    <rect x="-30" y="7" width="60" height="15" fill="#795548" rx="2" ry="2" />
+                    
+                    {/* Text: Luna Wildrose */}
+                    <text x="0" y="11" 
+                          font-family="sans-serif" 
+                          font-size="7" 
+                          fill="#fbe2b1" 
+                          text-anchor="middle"
+                          font-weight="bold">LUNA</text>
+                    <text x="0" y="21" 
+                          font-family="sans-serif" 
+                          font-size="7" 
+                          fill="#fbe2b1" 
+                          text-anchor="middle"
+                          font-weight="bold">WILDROSE</text>
+                </g>
+
+                {/* Red Flowers */}
+                <g transform="translate(-15, 70)">
+                    {/* Stem */}
+                    <rect x="-1" y="0" width="2" height="15" fill="#388e3c" />
+                    {/* Petals */}
+                    <circle cx="0" cy="0" r="4" fill="#e53935" />
+                    <circle cx="3" cy="-2.5" r="4" fill="#e53935" />
+                    <circle cx="-3" cy="-2.5" r="4" fill="#e53935" />
+                    {/* Center */}
+                    <circle cx="0" cy="0" r="2" fill="#ffc107" />
+                </g>
+
+                <g transform="translate(0, 70)">
+                    <rect x="-1" y="0" width="2" height="15" fill="#388e3c" />
+
+                    <circle cx="0" cy="0" r="4" fill="#e53935" />
+                    <circle cx="3" cy="-2.5" r="4" fill="#e53935" />
+                    <circle cx="-3" cy="-2.5" r="4" fill="#e53935" />
+
+                    <circle cx="0" cy="0" r="2" fill="#ffc107" />
+                </g>
+                
+                <g transform="translate(15, 70)">
+                    <rect x="-1" y="0" width="2" height="15" fill="#388e3c" />
+
+                    <circle cx="0" cy="0" r="4" fill="#e53935" />
+                    <circle cx="3" cy="-2.5" r="4" fill="#e53935" />
+                    <circle cx="-3" cy="-2.5" r="4" fill="#e53935" />
+
+                    <circle cx="0" cy="0" r="2" fill="#ffc107" />
+                </g>
+
+            </g>
         
         {/* Fisherman */}
         <Fisherman
