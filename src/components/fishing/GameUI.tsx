@@ -50,9 +50,10 @@ export default function GameUI({ gameState, onFish, onDismissCatch, weather }: G
           </CardContent>
         </Card>
 
-        <div className="text-foreground/80 text-sm">
+        <div className="text-foreground/80 text-md">
           <div>Use ← → arrows to move</div>
           <div>↓ arrow to sit/stand</div>
+          <div>Click on door to view collection</div>
         </div>
       </div>
 
