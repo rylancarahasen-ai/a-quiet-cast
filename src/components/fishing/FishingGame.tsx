@@ -95,12 +95,17 @@ export default function FishingGame() {
 
   const unlockAchievement = async (achievementId: string) => {
     try {
+      console.log('Attempting to unlock achievement:', achievementId);
+      console.log('Current achievements:', achievements);
       const achievement = achievements.find(a => a.achievementId === achievementId);
+      console.log('Found achievement:', achievement);
       if (achievement && !achievement.unlocked) {
+        console.log('Updating achievement to unlocked');
         await Achievement.update(achievement.id, {
           unlocked: true,
           unlockedAt: Date.now()
         });
+        console.log('Achievement updated, reloading...');
         await loadAchievements();
       }
     } catch (error) {
