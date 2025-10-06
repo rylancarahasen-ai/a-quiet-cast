@@ -96,9 +96,28 @@ export default function FishingGame() {
   const unlockAchievement = async (achievementId: string) => {
     try {
       console.log('Attempting to unlock achievement:', achievementId);
-      console.log('Current achievements:', achievements);
-      const achievement = achievements.find(a => a.achievementId === achievementId);
+      const user = await User.me();
+      
+      // Fetch fresh achievements data
+      let userAchievements = await Achievement.filter({ created_by: user.email });
+      console.log('Fresh achievements loaded:', userAchievements);
+      
+      // Initialize achievement if it doesn't exist
+      if (userAchievements.length === 0) {
+        console.log('No achievements found, creating first-fish achievement');
+        await Achievement.create({
+          achievementId: 'first-fish',
+          title: 'Every End Is A New Beginning',
+          description: 'Caught your first fish',
+          unlockedQuote: 'God buries our sins in the depths of the sea and then puts up a sign that says, "No Fishing". - Corrie ten Boom',
+          unlocked: false
+        });
+        userAchievements = await Achievement.filter({ created_by: user.email });
+      }
+      
+      const achievement = userAchievements.find(a => a.achievementId === achievementId);
       console.log('Found achievement:', achievement);
+      
       if (achievement && !achievement.unlocked) {
         console.log('Updating achievement to unlocked');
         await Achievement.update(achievement.id, {
