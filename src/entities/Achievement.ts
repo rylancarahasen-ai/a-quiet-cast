@@ -14,10 +14,11 @@ export class Achievement {
 
   static async create(data: any): Promise<Achievement> {
     const achievements = JSON.parse(localStorage.getItem('achievements') || '[]');
+    const user = JSON.parse(localStorage.getItem('currentUser') || '{"email":"local-user"}');
     const newAchievement = {
       ...data,
       id: Date.now().toString(),
-      created_by: 'local-user',
+      created_by: user.email,
     };
     achievements.push(newAchievement);
     localStorage.setItem('achievements', JSON.stringify(achievements));
