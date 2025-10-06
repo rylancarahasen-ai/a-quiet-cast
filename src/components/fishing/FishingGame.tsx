@@ -201,6 +201,10 @@ export default function FishingGame() {
         timestamp: Date.now()
       };
 
+      // Store current fish count BEFORE updating state
+      const isFirstFish = gameState.fishCaught === 0;
+      const currentFishCount = gameState.fishCaught;
+
       // Update local game state immediately for responsiveness
       setGameState(prev => {
         const newCatch = {
@@ -219,20 +223,20 @@ export default function FishingGame() {
         };
       });
 
-            // Try to save catch to database (but don't block the game if it fails)
+      // Try to save catch to database (but don't block the game if it fails)
       try {
         await FishCatch.create(catchData);
         await loadFishCollection(); // Refresh collection after successful save
         
-        // Check for first fish achievement
-        if (gameState.fishCaught === 0) {
+        // Check for first fish achievement using the stored value
+        if (isFirstFish) {
+          console.log('Unlocking first fish achievement!');
           await unlockAchievement('first-fish');
         }
         
         // Update stats after successful save
-        // Use the latest state values for fishCaught and gameStats
         updateGameStats({
-          fishCaught: gameState.fishCaught + 1, // gameState.fishCaught would have been updated by the setGameState above
+          fishCaught: currentFishCount + 1,
           biggestFish: Math.max(gameState.gameStats?.biggestFish || 0, fishSize),
           favoriteWeather: gameState.currentWeather
         });
@@ -354,17 +358,17 @@ export default function FishingGame() {
                     
                     {/* Text: Luna Wildrose */}
                     <text x="0" y="11" 
-                          font-family="sans-serif" 
-                          font-size="7" 
+                          fontFamily="sans-serif" 
+                          fontSize="7" 
                           fill="#fbe2b1" 
-                          text-anchor="middle"
-                          font-weight="bold">LUNA</text>
+                          textAnchor="middle"
+                          fontWeight="bold">LUNA</text>
                     <text x="0" y="21" 
-                          font-family="sans-serif" 
-                          font-size="7" 
+                          fontFamily="sans-serif" 
+                          fontSize="7" 
                           fill="#fbe2b1" 
-                          text-anchor="middle"
-                          font-weight="bold">WILDROSE</text>
+                          textAnchor="middle"
+                          fontWeight="bold">WILDROSE</text>
                 </g>
 
                 {/* Red Flowers */}
