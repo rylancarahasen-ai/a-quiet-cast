@@ -9,7 +9,14 @@ export class Achievement {
   created_by?: string;
 
   constructor(data: Partial<Achievement>) {
-    Object.assign(this, data);
+    this.id = data.id;
+    this.achievementId = data.achievementId || '';
+    this.title = data.title || '';
+    this.description = data.description || '';
+    this.unlockedQuote = data.unlockedQuote || '';
+    this.unlocked = data.unlocked || false;
+    this.unlockedAt = data.unlockedAt;
+    this.created_by = data.created_by;
   }
 
   static async create(data: any): Promise<Achievement> {
