@@ -95,53 +95,13 @@ export default function FishingGame() {
 
   const unlockAchievement = async (achievementId: string) => {
     try {
-      console.log('Attempting to unlock achievement:', achievementId);
-      const user = await User.me();
-      console.log('Current user:', user.email);
-      
-      // Check raw localStorage first
-      const rawAchievements = localStorage.getItem('achievements');
-      console.log('Raw achievements in localStorage:', rawAchievements);
-      
-      // Fetch fresh achievements data
-      let userAchievements = await Achievement.filter({ created_by: user.email });
-      console.log('Fresh achievements loaded, count:', userAchievements.length);
-      console.log('Achievement objects:', JSON.stringify(userAchievements, null, 2));
-      
-      // Initialize achievement if it doesn't exist
-      if (userAchievements.length === 0) {
-        console.log('No achievements found, creating first-fish achievement');
-        const created = await Achievement.create({
-          achievementId: 'first-fish',
-          title: 'Every End Is A New Beginning',
-          description: 'Caught your first fish',
-          unlockedQuote: 'God buries our sins in the depths of the sea and then puts up a sign that says, "No Fishing". - Corrie ten Boom',
-          unlocked: false
-        });
-        console.log('Created achievement:', JSON.stringify(created, null, 2));
-        userAchievements = await Achievement.filter({ created_by: user.email });
-        console.log('After refetch:', JSON.stringify(userAchievements, null, 2));
-      }
-      
-      console.log('Searching for achievementId:', achievementId);
-      const achievement = userAchievements.find(a => {
-        console.log('Checking achievement:', a.achievementId, 'vs', achievementId);
-        return a.achievementId === achievementId;
-      });
-      console.log('Found achievement:', JSON.stringify(achievement, null, 2));
-      
+      const achievement = achievements.find(a => a.achievementId === achievementId);
       if (achievement && !achievement.unlocked) {
-        console.log('Updating achievement to unlocked, ID:', achievement.id);
         await Achievement.update(achievement.id, {
           unlocked: true,
           unlockedAt: Date.now()
         });
-        console.log('Achievement updated, reloading...');
         await loadAchievements();
-      } else if (achievement && achievement.unlocked) {
-        console.log('Achievement already unlocked');
-      } else {
-        console.log('Achievement not found or invalid');
       }
     } catch (error) {
       console.log('Could not unlock achievement:', error);
@@ -241,10 +201,6 @@ export default function FishingGame() {
         timestamp: Date.now()
       };
 
-      // Store current fish count BEFORE updating state
-      const isFirstFish = gameState.fishCaught === 0;
-      const currentFishCount = gameState.fishCaught;
-
       // Update local game state immediately for responsiveness
       setGameState(prev => {
         const newCatch = {
@@ -263,20 +219,20 @@ export default function FishingGame() {
         };
       });
 
-      // Try to save catch to database (but don't block the game if it fails)
+            // Try to save catch to database (but don't block the game if it fails)
       try {
         await FishCatch.create(catchData);
         await loadFishCollection(); // Refresh collection after successful save
         
-        // Check for first fish achievement using the stored value
-        if (isFirstFish) {
-          console.log('Unlocking first fish achievement!');
+        // Check for first fish achievement
+        if (gameState.fishCaught === 0) {
           await unlockAchievement('first-fish');
         }
         
         // Update stats after successful save
+        // Use the latest state values for fishCaught and gameStats
         updateGameStats({
-          fishCaught: currentFishCount + 1,
+          fishCaught: gameState.fishCaught + 1, // gameState.fishCaught would have been updated by the setGameState above
           biggestFish: Math.max(gameState.gameStats?.biggestFish || 0, fishSize),
           favoriteWeather: gameState.currentWeather
         });
@@ -398,17 +354,17 @@ export default function FishingGame() {
                     
                     {/* Text: Luna Wildrose */}
                     <text x="0" y="11" 
-                          fontFamily="sans-serif" 
-                          fontSize="7" 
+                          font-family="sans-serif" 
+                          font-size="7" 
                           fill="#fbe2b1" 
-                          textAnchor="middle"
-                          fontWeight="bold">LUNA</text>
+                          text-anchor="middle"
+                          font-weight="bold">LUNA</text>
                     <text x="0" y="21" 
-                          fontFamily="sans-serif" 
-                          fontSize="7" 
+                          font-family="sans-serif" 
+                          font-size="7" 
                           fill="#fbe2b1" 
-                          textAnchor="middle"
-                          fontWeight="bold">WILDROSE</text>
+                          text-anchor="middle"
+                          font-weight="bold">WILDROSE</text>
                 </g>
 
                 {/* Red Flowers */}

@@ -1,4 +1,4 @@
-export interface Achievement {
+export class Achievement {
   id?: string;
   achievementId: string;
   title: string;
@@ -7,48 +7,44 @@ export interface Achievement {
   unlocked: boolean;
   unlockedAt?: number;
   created_by?: string;
-}
 
-export class Achievement {
-  static async create(data: Partial<Achievement>): Promise<Achievement> {
+  constructor(data: Partial<Achievement>) {
+    Object.assign(this, data);
+  }
+
+  static async create(data: any): Promise<Achievement> {
     const achievements = JSON.parse(localStorage.getItem('achievements') || '[]');
-    const user = JSON.parse(localStorage.getItem('currentUser') || '{"email":"local-user"}');
-    const newAchievement: Achievement = {
-      achievementId: data.achievementId || '',
-      title: data.title || '',
-      description: data.description || '',
-      unlockedQuote: data.unlockedQuote || '',
-      unlocked: data.unlocked || false,
-      unlockedAt: data.unlockedAt,
+    const newAchievement = {
+      ...data,
       id: Date.now().toString(),
-      created_by: user.email,
+      created_by: 'local-user',
     };
     achievements.push(newAchievement);
     localStorage.setItem('achievements', JSON.stringify(achievements));
-    return newAchievement;
+    return new Achievement(newAchievement);
   }
 
   static async list(): Promise<Achievement[]> {
     const achievements = JSON.parse(localStorage.getItem('achievements') || '[]');
-    return achievements;
+    return achievements.map((a: any) => new Achievement(a));
   }
 
-  static async filter(criteria: { created_by?: string; achievementId?: string }): Promise<Achievement[]> {
+  static async filter(criteria: any): Promise<Achievement[]> {
     const achievements = await this.list();
-    return achievements.filter((a: Achievement) => {
+    return achievements.filter(a => {
       if (criteria.created_by && a.created_by !== criteria.created_by) return false;
       if (criteria.achievementId && a.achievementId !== criteria.achievementId) return false;
       return true;
     });
   }
 
-  static async update(id: string, updates: Partial<Achievement>): Promise<Achievement> {
+  static async update(id: string, updates: any): Promise<Achievement> {
     const achievements = JSON.parse(localStorage.getItem('achievements') || '[]');
-    const index = achievements.findIndex((a: Achievement) => a.id === id);
+    const index = achievements.findIndex((a: any) => a.id === id);
     if (index !== -1) {
       achievements[index] = { ...achievements[index], ...updates };
       localStorage.setItem('achievements', JSON.stringify(achievements));
-      return achievements[index];
+      return new Achievement(achievements[index]);
     }
     throw new Error('Achievement not found');
   }
