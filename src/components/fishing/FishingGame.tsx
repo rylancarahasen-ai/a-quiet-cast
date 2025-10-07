@@ -14,7 +14,7 @@ import AchievementDisplay from './AchievementDisplay';
 const WEATHER_CYCLE = ['sunset', 'mountain', 'snow', 'rain', 'starry'];
 const WEATHER_DURATION = 2.5 * 60 * 1000; // 2.5 minutes in milliseconds
 
-export default function FishingGame() {}
+export default function FishingGame() {
   const [gameState, setGameState] = useState({
     fishermanPosition: 50, // percentage from left
     isSitting: false,
@@ -71,7 +71,6 @@ export default function FishingGame() {}
   };
 
     const loadAchievements = async () => {
-  const loadAchievements = async () => {
     try {
       let userAchievements = await Achievement.filter({ created_by: 'local-user' });
       
@@ -221,7 +220,7 @@ export default function FishingGame() {}
         };
       });
 
-            // Try to save catch to database (but don't block the game if it fails)
+      // Try to save catch to database (but don't block the game if it fails)
       try {
         await FishCatch.create(catchData);
         await loadFishCollection(); // Refresh collection after successful save
@@ -231,7 +230,6 @@ export default function FishingGame() {}
         if (currentFishCount === 0) {
           await unlockAchievement('first-fish');
         }
-        
         
         // Update stats after successful save
         // Use the latest state values for fishCaught and gameStats
