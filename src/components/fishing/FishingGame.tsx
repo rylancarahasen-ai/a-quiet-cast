@@ -71,6 +71,7 @@ export default function FishingGame() {
   };
 
     const loadAchievements = async () => {
+  const loadAchievements = async () => {
     try {
       let userAchievements = await Achievement.filter({ created_by: 'local-user' });
       
@@ -220,12 +221,18 @@ export default function FishingGame() {
         };
       });
 
-      // Try to save catch to database (but don't block the game if it fails)
+            // Try to save catch to database (but don't block the game if it fails)
       try {
         await FishCatch.create(catchData);
         await loadFishCollection(); // Refresh collection after successful save
 
          // Check for first fish achievement
+        const currentFishCount = gameState.fishCaught;
+        if (currentFishCount === 0) {
+          await unlockAchievement('first-fish');
+        }
+        
+        // Check for first fish achievement
         const currentFishCount = gameState.fishCaught;
         if (currentFishCount === 0) {
           await unlockAchievement('first-fish');
