@@ -72,8 +72,7 @@ export default function FishingGame() {
 
   const loadAchievements = async () => {
     try {
-      const user = await User.me();
-      let userAchievements = await Achievement.filter({ created_by: user.email });
+      let userAchievements = await Achievement.filter({ created_by: 'local-user' });
       
       // Initialize achievement if it doesn't exist
       if (userAchievements.length === 0) {
@@ -84,7 +83,7 @@ export default function FishingGame() {
           unlockedQuote: 'God buries our sins in the depths of the sea and then puts up a sign that says, "No Fishing". - Corrie ten Boom',
           unlocked: false
         });
-        userAchievements = await Achievement.filter({ created_by: user.email });
+        userAchievements = await Achievement.filter({ created_by: 'local-user' });
       }
       
       setAchievements(userAchievements);
@@ -102,6 +101,8 @@ export default function FishingGame() {
           unlockedAt: Date.now()
         });
         await loadAchievements();
+        // Show notification that achievement was unlocked
+        setGameState(prev => ({ ...prev, showAchievements: true }));
       }
     } catch (error) {
       console.log('Could not unlock achievement:', error);
@@ -225,7 +226,8 @@ export default function FishingGame() {
         await loadFishCollection(); // Refresh collection after successful save
         
         // Check for first fish achievement
-        if (gameState.fishCaught === 0) {
+        const currentFishCount = gameState.fishCaught;
+        if (currentFishCount === 0) {
           await unlockAchievement('first-fish');
         }
         
