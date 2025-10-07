@@ -52,14 +52,11 @@ export default function AchievementDisplay({ achievements, onClose }: Achievemen
             {achievements.map((achievement) => (
               <Card 
                 key={achievement.achievementId}
-                className={`transition-all duration-300 cursor-pointer ${
+                className={`transition-all duration-300 ${
                   achievement.unlocked 
-                    ? 'bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-400 hover:shadow-lg' 
+                    ? 'bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-400' 
                     : 'bg-gray-800 border-gray-700 opacity-60'
                 }`}
-                onClick={() => achievement.unlocked && setSelectedAchievement(
-                  selectedAchievement === achievement.achievementId ? null : achievement.achievementId
-                )}
               >
                 <CardContent className="p-6">
                   <div className="flex items-start gap-4">
@@ -83,8 +80,24 @@ export default function AchievementDisplay({ achievements, onClose }: Achievemen
                         {achievement.description}
                       </p>
 
+                      {achievement.unlocked && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedAchievement(
+                              selectedAchievement === achievement.achievementId ? null : achievement.achievementId
+                            );
+                          }}
+                          className="mb-3"
+                        >
+                          {selectedAchievement === achievement.achievementId ? 'Hide Quote' : 'View Quote'}
+                        </Button>
+                      )}
+
                       {achievement.unlocked && selectedAchievement === achievement.achievementId && (
-                        <div className="mt-4 p-4 bg-white rounded-lg border-2 border-amber-300 shadow-inner">
+                        <div className="mt-2 mb-3 p-4 bg-white rounded-lg border-2 border-amber-300 shadow-inner">
                           <div className="text-xs font-semibold text-amber-700 mb-2">UNLOCKED QUOTE:</div>
                           <p className="text-sm italic text-gray-800 leading-relaxed">
                             "{achievement.unlockedQuote}"
