@@ -14,7 +14,7 @@ import AchievementDisplay from './AchievementDisplay';
 const WEATHER_CYCLE = ['sunset', 'mountain', 'snow', 'rain', 'starry'];
 const WEATHER_DURATION = 2.5 * 60 * 1000; // 2.5 minutes in milliseconds
 
-export default function FishingGame() {
+export default function FishingGame() {}
   const [gameState, setGameState] = useState({
     fishermanPosition: 50, // percentage from left
     isSitting: false,
@@ -232,11 +232,6 @@ export default function FishingGame() {
           await unlockAchievement('first-fish');
         }
         
-        // Check for first fish achievement
-        const currentFishCount = gameState.fishCaught;
-        if (currentFishCount === 0) {
-          await unlockAchievement('first-fish');
-        }
         
         // Update stats after successful save
         // Use the latest state values for fishCaught and gameStats
