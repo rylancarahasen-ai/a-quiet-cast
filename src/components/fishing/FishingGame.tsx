@@ -97,35 +97,51 @@ export default function FishingGame() {
     try {
       console.log('Attempting to unlock achievement:', achievementId);
       const user = await User.me();
+      console.log('Current user:', user.email);
+      
+      // Check raw localStorage first
+      const rawAchievements = localStorage.getItem('achievements');
+      console.log('Raw achievements in localStorage:', rawAchievements);
       
       // Fetch fresh achievements data
       let userAchievements = await Achievement.filter({ created_by: user.email });
-      console.log('Fresh achievements loaded:', userAchievements);
+      console.log('Fresh achievements loaded, count:', userAchievements.length);
+      console.log('Achievement objects:', JSON.stringify(userAchievements, null, 2));
       
       // Initialize achievement if it doesn't exist
       if (userAchievements.length === 0) {
         console.log('No achievements found, creating first-fish achievement');
-        await Achievement.create({
+        const created = await Achievement.create({
           achievementId: 'first-fish',
           title: 'Every End Is A New Beginning',
           description: 'Caught your first fish',
           unlockedQuote: 'God buries our sins in the depths of the sea and then puts up a sign that says, "No Fishing". - Corrie ten Boom',
           unlocked: false
         });
+        console.log('Created achievement:', JSON.stringify(created, null, 2));
         userAchievements = await Achievement.filter({ created_by: user.email });
+        console.log('After refetch:', JSON.stringify(userAchievements, null, 2));
       }
       
-      const achievement = userAchievements.find(a => a.achievementId === achievementId);
-      console.log('Found achievement:', achievement);
+      console.log('Searching for achievementId:', achievementId);
+      const achievement = userAchievements.find(a => {
+        console.log('Checking achievement:', a.achievementId, 'vs', achievementId);
+        return a.achievementId === achievementId;
+      });
+      console.log('Found achievement:', JSON.stringify(achievement, null, 2));
       
       if (achievement && !achievement.unlocked) {
-        console.log('Updating achievement to unlocked');
+        console.log('Updating achievement to unlocked, ID:', achievement.id);
         await Achievement.update(achievement.id, {
           unlocked: true,
           unlockedAt: Date.now()
         });
         console.log('Achievement updated, reloading...');
         await loadAchievements();
+      } else if (achievement && achievement.unlocked) {
+        console.log('Achievement already unlocked');
+      } else {
+        console.log('Achievement not found or invalid');
       }
     } catch (error) {
       console.log('Could not unlock achievement:', error);
