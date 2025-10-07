@@ -8,6 +8,8 @@ import GameUI from './GameUI';
 import WeatherSystem from './WeatherSystem';
 import { FishCatch } from '@/entities/FishCatch';
 import FishCollection from './FishCollection';
+import { Achievement } from '@/entities/Achievement';
+import AchievementDisplay from './AchievementDisplay';
 
 const WEATHER_CYCLE = ['sunset', 'mountain', 'snow', 'rain', 'starry'];
 const WEATHER_DURATION = 2.5 * 60 * 1000; // 2.5 minutes in milliseconds
@@ -27,16 +29,19 @@ export default function FishingGame() {
       timestamp: number;
     } | null,
     gameStats: null as any,
-    showFishCollection: false
+    showFishCollection: false,
+    showAchievements: false
   });
 
   const [keys, setKeys] = useState<Record<string, boolean>>({});
   const [fishCollection, setFishCollection] = useState<any[]>([]);
+  const [achievements, setAchievements] = useState<any[]>([]);
 
   // Load game stats and fish collection on mount
   useEffect(() => {
     loadGameStats();
     loadFishCollection();
+    loadAchievements();
   }, []);
 
   const loadGameStats = async () => {
@@ -62,6 +67,45 @@ export default function FishingGame() {
     } catch (error) {
       // User not logged in or no catches yet
       console.log('Could not load fish collection:', error);
+    }
+  };
+
+    const loadAchievements = async () => {
+    try {
+      let userAchievements = await Achievement.filter({ created_by: 'local-user' });
+      
+      // Initialize achievement if it doesn't exist
+      if (userAchievements.length === 0) {
+        await Achievement.create({
+          achievementId: 'first-fish',
+          title: 'Every End Is A New Beginning',
+          description: 'Caught your first fish',
+          unlockedQuote: 'God buries our sins in the depths of the sea and then puts up a sign that says, "No Fishing". - Corrie ten Boom',
+          unlocked: false
+        });
+        userAchievements = await Achievement.filter({ created_by: 'local-user' });
+      }
+      
+      setAchievements(userAchievements);
+    } catch (error) {
+      console.log('Could not load achievements:', error);
+    }
+  };
+
+  const unlockAchievement = async (achievementId: string) => {
+    try {
+      const achievement = achievements.find(a => a.achievementId === achievementId);
+      if (achievement && !achievement.unlocked) {
+        await Achievement.update(achievement.id, {
+          unlocked: true,
+          unlockedAt: Date.now()
+        });
+        await loadAchievements();
+        // Show notification that achievement was unlocked
+        setGameState(prev => ({ ...prev, showAchievements: true }));
+      }
+    } catch (error) {
+      console.log('Could not unlock achievement:', error);
     }
   };
 
@@ -180,6 +224,12 @@ export default function FishingGame() {
       try {
         await FishCatch.create(catchData);
         await loadFishCollection(); // Refresh collection after successful save
+
+         // Check for first fish achievement
+        const currentFishCount = gameState.fishCaught;
+        if (currentFishCount === 0) {
+          await unlockAchievement('first-fish');
+        }
         
         // Update stats after successful save
         // Use the latest state values for fishCaught and gameStats
@@ -213,6 +263,14 @@ export default function FishingGame() {
 
   const closeFishCollection = () => {
     setGameState(prev => ({ ...prev, showFishCollection: false }));
+  };
+
+  const handleGravestoneClick = () => {
+    setGameState(prev => ({ ...prev, showAchievements: true }));
+  };
+
+  const closeAchievements = () => {
+    setGameState(prev => ({ ...prev, showAchievements: false }));
   };
 
   return (
@@ -286,10 +344,10 @@ export default function FishingGame() {
         </g>
 
         {/* Grave of Luna Wildrose */}
-            <g transform="translate(1100, 400)">
+            <g transform="translate(1100, 400)" style={{ cursor: 'pointer' }} onClick={handleGravestoneClick}>
                 
                 {/* Grave Stone */}
-                <rect x="-45" y="55" width="90" height="30" rx="5" ry="5" fill="#a0a0a0" stroke="#757575" stroke-width="1" />
+                <rect x="-45" y="55" width="90" height="30" rx="5" ry="5" fill="#a0a0a0" stroke="#757575" strokeWidth="1" />
                 
                 {/* Wooden Cross */}
                 <g transform="translate(0, 5)">
@@ -373,6 +431,14 @@ export default function FishingGame() {
         <FishCollection 
           fishCollection={fishCollection}
           onClose={closeFishCollection}
+        />
+      )}
+
+      {/* Achievement Display Modal */}
+      {gameState.showAchievements && (
+        <AchievementDisplay 
+          achievements={achievements}
+          onClose={closeAchievements}
         />
       )}
     </div>

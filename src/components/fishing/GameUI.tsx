@@ -54,6 +54,7 @@ export default function GameUI({ gameState, onFish, onDismissCatch, weather }: G
           <div>Use ← → arrows to move</div>
           <div>↓ arrow to sit/stand</div>
           <div>Click on door to view collection</div>
+          <div>Click on gravestone for achievements</div>
         </div>
       </div>
 
