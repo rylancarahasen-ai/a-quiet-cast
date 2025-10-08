@@ -36,6 +36,8 @@ export default function FishingGame() {
   const [keys, setKeys] = useState<Record<string, boolean>>({});
   const [fishCollection, setFishCollection] = useState<any[]>([]);
   const [achievements, setAchievements] = useState<any[]>([]);
+  // NEW STATE: Track the number of times the weather cycle has been fully completed
+  const [cycleCount, setCycleCount] = useState(0); 
 
   // Load game stats and fish collection on mount
   useEffect(() => {
@@ -70,12 +72,13 @@ export default function FishingGame() {
     }
   };
 
-    const loadAchievements = async () => {
+  const loadAchievements = async () => {
     try {
       let userAchievements = await Achievement.filter({ created_by: 'local-user' });
       
-      // Initialize achievement if it doesn't exist
-      if (userAchievements.length === 0) {
+      // Initialize 'first-fish' achievement if it doesn't exist
+      const firstFishExists = userAchievements.some(a => a.achievementId === 'first-fish');
+      if (!firstFishExists) {
         await Achievement.create({
           achievementId: 'first-fish',
           title: 'Every End Is A New Beginning',
@@ -83,10 +86,31 @@ export default function FishingGame() {
           unlockedQuote: 'God buries our sins in the depths of the sea and then puts up a sign that says, "No Fishing". - Corrie ten Boom',
           unlocked: false
         });
-        userAchievements = await Achievement.filter({ created_by: 'local-user' });
       }
+
+      // Initialize 'weather-perseverance' achievement if it doesn't exist
+      const weatherPerseveranceExists = userAchievements.some(a => a.achievementId === 'weather-perseverance');
+      if (!weatherPerseveranceExists) {
+        await Achievement.create({
+          achievementId: 'weather-perseverance',
+          title: 'Weathering Perseverance',
+          description: 'Complete one full weather cycle.',
+          unlockedQuote: 'I can do all things through Christ who strengthens me - Philippians 4:13',
+          unlocked: false
+        });
+      }
+
+      userAchievements = await Achievement.filter({ created_by: 'local-user' });
       
       setAchievements(userAchievements);
+      
+      // NEW: Check if 'weather-perseverance' is unlocked and set initial cycle count
+      const weatherPerseverance = userAchievements.find(a => a.achievementId === 'weather-perseverance');
+      if (weatherPerseverance?.unlocked) {
+        // Since we don't store the exact cycle count, we assume at least 1 if unlocked
+        setCycleCount(1);
+      }
+
     } catch (error) {
       console.log('Could not load achievements:', error);
     }
@@ -100,7 +124,7 @@ export default function FishingGame() {
           unlocked: true,
           unlockedAt: Date.now()
         });
-        await loadAchievements();
+        await loadAchievements(); // Reload to update state with unlocked status
         // Show notification that achievement was unlocked
         setGameState(prev => ({ ...prev, showAchievements: true }));
       }
@@ -126,11 +150,24 @@ export default function FishingGame() {
     }
   }, [gameState.gameStats]);
 
-  // Weather cycling system
+  // Weather cycling system (MODIFIED)
   useEffect(() => {
     const weatherInterval = setInterval(() => {
       setGameState(prev => {
         const nextIndex = (prev.weatherIndex + 1) % WEATHER_CYCLE.length;
+        
+        // Check for a full cycle completion
+        if (nextIndex === 0) {
+          setCycleCount(prevCount => {
+            const newCount = prevCount + 1;
+            // Unlock 'Weathering Perseverance' on the first cycle completion (newCount === 1)
+            if (newCount === 1) {
+              unlockAchievement('weather-perseverance');
+            }
+            return newCount;
+          });
+        }
+
         return {
           ...prev,
           weatherIndex: nextIndex,
@@ -140,7 +177,7 @@ export default function FishingGame() {
     }, WEATHER_DURATION);
 
     return () => clearInterval(weatherInterval);
-  }, []);
+  }, []); // Note: dependency array is empty, as setCycleCount and unlockAchievement don't need to be dependencies due to how they are called.
 
   // Keyboard controls
   useEffect(() => {
@@ -225,7 +262,7 @@ export default function FishingGame() {
         await FishCatch.create(catchData);
         await loadFishCollection(); // Refresh collection after successful save
 
-         // Check for first fish achievement
+          // Check for first fish achievement
         const currentFishCount = gameState.fishCaught;
         if (currentFishCount === 0) {
           await unlockAchievement('first-fish');
@@ -251,7 +288,7 @@ export default function FishingGame() {
         currentCatch: null
       }));
     }
-  }, [gameState.isFishing, gameState.currentWeather, gameState.fishCaught, gameState.gameStats, updateGameStats]);
+  }, [gameState.isFishing, gameState.currentWeather, gameState.fishCaught, gameState.gameStats, updateGameStats, unlockAchievement]);
 
   const dismissCatch = () => {
     setGameState(prev => ({ ...prev, currentCatch: null }));
@@ -344,64 +381,64 @@ export default function FishingGame() {
         </g>
 
         {/* Grave of Luna Wildrose */}
-            <g transform="translate(1100, 400)" style={{ cursor: 'pointer' }} onClick={handleGravestoneClick}>
-                
-                {/* Grave Stone */}
-                <rect x="-45" y="55" width="90" height="30" rx="5" ry="5" fill="#a0a0a0" stroke="#757575" strokeWidth="1" />
-                
-                {/* Wooden Cross */}
-                <g transform="translate(0, 5)">
-                    <rect x="-10" y="-15" width="20" height="85" fill="#795548" rx="2" ry="2" />
-                    <rect x="-30" y="7" width="60" height="15" fill="#795548" rx="2" ry="2" />
-                    
-                    {/* Text: Luna Wildrose */}
-                    <text x="0" y="11" 
-                          font-family="sans-serif" 
-                          font-size="7" 
-                          fill="#fbe2b1" 
-                          text-anchor="middle"
-                          font-weight="bold">LUNA</text>
-                    <text x="0" y="21" 
-                          font-family="sans-serif" 
-                          font-size="7" 
-                          fill="#fbe2b1" 
-                          text-anchor="middle"
-                          font-weight="bold">WILDROSE</text>
-                </g>
-
-                {/* Red Flowers */}
-                <g transform="translate(-15, 70)">
-                    {/* Stem */}
-                    <rect x="-1" y="0" width="2" height="15" fill="#388e3c" />
-                    {/* Petals */}
-                    <circle cx="0" cy="0" r="4" fill="#e53935" />
-                    <circle cx="3" cy="-2.5" r="4" fill="#e53935" />
-                    <circle cx="-3" cy="-2.5" r="4" fill="#e53935" />
-                    {/* Center */}
-                    <circle cx="0" cy="0" r="2" fill="#ffc107" />
-                </g>
-
-                <g transform="translate(0, 70)">
-                    <rect x="-1" y="0" width="2" height="15" fill="#388e3c" />
-
-                    <circle cx="0" cy="0" r="4" fill="#e53935" />
-                    <circle cx="3" cy="-2.5" r="4" fill="#e53935" />
-                    <circle cx="-3" cy="-2.5" r="4" fill="#e53935" />
-
-                    <circle cx="0" cy="0" r="2" fill="#ffc107" />
-                </g>
-                
-                <g transform="translate(15, 70)">
-                    <rect x="-1" y="0" width="2" height="15" fill="#388e3c" />
-
-                    <circle cx="0" cy="0" r="4" fill="#e53935" />
-                    <circle cx="3" cy="-2.5" r="4" fill="#e53935" />
-                    <circle cx="-3" cy="-2.5" r="4" fill="#e53935" />
-
-                    <circle cx="0" cy="0" r="2" fill="#ffc107" />
-                </g>
-
+          <g transform="translate(1100, 400)" style={{ cursor: 'pointer' }} onClick={handleGravestoneClick}>
+            
+            {/* Grave Stone */}
+            <rect x="-45" y="55" width="90" height="30" rx="5" ry="5" fill="#a0a0a0" stroke="#757575" strokeWidth="1" />
+            
+            {/* Wooden Cross */}
+            <g transform="translate(0, 5)">
+              <rect x="-10" y="-15" width="20" height="85" fill="#795548" rx="2" ry="2" />
+              <rect x="-30" y="7" width="60" height="15" fill="#795548" rx="2" ry="2" />
+              
+              {/* Text: Luna Wildrose */}
+              <text x="0" y="11" 
+                  font-family="sans-serif" 
+                  font-size="7" 
+                  fill="#fbe2b1" 
+                  text-anchor="middle"
+                  font-weight="bold">LUNA</text>
+              <text x="0" y="21" 
+                  font-family="sans-serif" 
+                  font-size="7" 
+                  fill="#fbe2b1" 
+                  text-anchor="middle"
+                  font-weight="bold">WILDROSE</text>
             </g>
+
+            {/* Red Flowers */}
+            <g transform="translate(-15, 70)">
+              {/* Stem */}
+              <rect x="-1" y="0" width="2" height="15" fill="#388e3c" />
+              {/* Petals */}
+              <circle cx="0" cy="0" r="4" fill="#e53935" />
+              <circle cx="3" cy="-2.5" r="4" fill="#e53935" />
+              <circle cx="-3" cy="-2.5" r="4" fill="#e53935" />
+              {/* Center */}
+              <circle cx="0" cy="0" r="2" fill="#ffc107" />
+            </g>
+
+            <g transform="translate(0, 70)">
+              <rect x="-1" y="0" width="2" height="15" fill="#388e3c" />
+
+              <circle cx="0" cy="0" r="4" fill="#e53935" />
+              <circle cx="3" cy="-2.5" r="4" fill="#e53935" />
+              <circle cx="-3" cy="-2.5" r="4" fill="#e53935" />
+
+              <circle cx="0" cy="0" r="2" fill="#ffc107" />
+            </g>
+            
+            <g transform="translate(15, 70)">
+              <rect x="-1" y="0" width="2" height="15" fill="#388e3c" />
+
+              <circle cx="0" cy="0" r="4" fill="#e53935" />
+              <circle cx="3" cy="-2.5" r="4" fill="#e53935" />
+              <circle cx="-3" cy="-2.5" r="4" fill="#e53935" />
+
+              <circle cx="0" cy="0" r="2" fill="#ffc107" />
+            </g>
+
+          </g>
         
         {/* Fisherman */}
         <Fisherman
